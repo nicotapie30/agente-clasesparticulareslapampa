@@ -112,4 +112,4 @@ if st.session_state.chat_active:
         # Guardar y mostrar la respuesta del asistente
         assistant_message = {"role": "assistant", "content": response_content}
         st.session_state.messages.append(assistant_message)
-        frontend.render_chat_message("assistant", response_content, avatar=front_logo)
+        frontend.render_chat_message("assistant", response_content, avatar=front_logo) 
