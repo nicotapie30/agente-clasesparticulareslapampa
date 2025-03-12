@@ -4,13 +4,14 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.colors import black, blue, grey
 from reportlab.lib.utils import simpleSplit
 import os
+import re
 import streamlit as st
 
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.textlabels import Label
 
-def latex_to_image(c, formula, x_center, y, fontSize=14):
-    """Dibuja una ecuación en LaTeX en el PDF centrada y con mejor espaciado."""
+def latex_to_image(c, formula, x, y, fontSize=14, center=False):
+    """Renderiza ecuaciones LaTeX como imágenes."""
     drawing = Drawing(0, 0)
     math_text = Label()
     math_text.setText(formula)
@@ -21,20 +22,20 @@ def latex_to_image(c, formula, x_center, y, fontSize=14):
         width = bounds[2] - bounds[0]
         height = bounds[3] - bounds[1]
     except:
-        width = 100  
-        height = 30  
+        width, height = 100, 30
 
     drawing.add(math_text)
 
-    x = x_center - (width / 2)
+    if center:
+        x = x - (width / 2)
 
     c.saveState()
-    c.translate(x, y - height + 15)  
-    c.scale(min(200, width) / width, min(50, height) / height)  
+    c.translate(x, y - height + 5)
+    c.scale(min(100, width) / width, min(20, height) / height)
     drawing.drawOn(c, 0, 0)
     c.restoreState()
 
-    return height + 15  
+    return height + 10  
 
 def generar_pdf(messages):
     pdf_buffer = BytesIO()
@@ -69,7 +70,6 @@ def generar_pdf(messages):
     for message in messages:
         role = "Usuario" if message["role"] == "user" else "Profesor"
 
-        # Diferenciar sutilmente el color del usuario y el profesor
         c.setFillColor(blue if message["role"] == "user" else black)
         c.setFont("Helvetica-Bold", 12)
         c.drawString(margin_x, y_position, f"{role}:")
@@ -78,43 +78,50 @@ def generar_pdf(messages):
         c.setFillColor(black)
         c.setFont("Helvetica", 12)
 
-        content_parts = message["content"].split("$$")
-        for i, part in enumerate(content_parts):
-            if i % 2 == 0:
-                lines = part.split("\n")
-                for line in lines:
-                    line = line.strip()
-                    
-                    if line.startswith("###"):  # TITULOS GRANDES
-                        title_text = line.replace("###", "").strip()
-                        y_position -= 10  
-                        c.setFont("Helvetica-Bold", 14)
-                        c.drawString(margin_x, y_position, title_text)
-                        y_position -= line_height + 5  
-                        c.setFont("Helvetica", 12)  
-                    
-                    elif "**" in line:  # SUBTITULOS RESALTADOS (cursiva + gris)
-                        subtitle_text = line.replace("**", "").strip()
-                        y_position -= 5  
-                        c.setFillColor(grey)
-                        c.setFont("Helvetica-Oblique", 12)  
-                        c.drawString(margin_x + 5, y_position, subtitle_text)
-                        y_position -= line_height  
-                        c.setFont("Helvetica", 12)  
-                        c.setFillColor(black)  
-
-                    else:  # TEXTO NORMAL
-                        content_lines = simpleSplit(line, "Helvetica", 12, max_width)
-                        for subline in content_lines:
-                            c.drawString(margin_x + 10, y_position, subline)  
-                            y_position -= line_height
-                            if y_position < margin_y:
-                                nueva_pagina()
-            else:
-                img_height = latex_to_image(c, part, width / 2, y_position, fontSize=16)
+        content_parts = re.split(r"(\$\$.*?\$\$)", message["content"])  # Separar ecuaciones en bloque
+        for part in content_parts:
+            if part.startswith("$$") and part.endswith("$$"):
+                formula = part[2:-2].strip()
+                img_height = latex_to_image(c, formula, width / 2, y_position, fontSize=16, center=True)
                 y_position -= img_height  
                 if y_position < margin_y:
                     nueva_pagina()
+            else:
+                text_parts = re.split(r"(\$.*?\$)", part)  # Separar ecuaciones en línea
+                for text in text_parts:
+                    if text.startswith("$") and text.endswith("$"):
+                        formula = text[1:-1].strip()
+                        img_height = latex_to_image(c, formula, margin_x + 10, y_position, fontSize=12, center=False)
+                        y_position -= img_height
+                        if y_position < margin_y:
+                            nueva_pagina()
+                    else:
+                        lines = text.split("\n")
+                        for line in lines:
+                            line = line.strip()
+                            if line.startswith("###"):  # Títulos
+                                title_text = line.replace("###", "").strip()
+                                y_position -= 10  
+                                c.setFont("Helvetica-Bold", 14)
+                                c.drawString(margin_x, y_position, title_text)
+                                y_position -= line_height + 5  
+                                c.setFont("Helvetica", 12)  
+                            elif "**" in line:  # Subtítulos en gris
+                                subtitle_text = line.replace("**", "").strip()
+                                y_position -= 5  
+                                c.setFillColor(grey)
+                                c.setFont("Helvetica-Oblique", 12)  
+                                c.drawString(margin_x + 5, y_position, subtitle_text)
+                                y_position -= line_height  
+                                c.setFont("Helvetica", 12)  
+                                c.setFillColor(black)  
+                            else:  # Texto normal
+                                content_lines = simpleSplit(line, "Helvetica", 12, max_width)
+                                for subline in content_lines:
+                                    c.drawString(margin_x + 10, y_position, subline)  
+                                    y_position -= line_height
+                                    if y_position < margin_y:
+                                        nueva_pagina()
 
         y_position -= line_height * 1.5  
 
