@@ -7,4 +7,4 @@ requests
 elevenlabs
 gcsfs==2023.5.0
 google-cloud-storage==2.10.0
-fpdf2
+reportlab
