@@ -20,7 +20,7 @@
    - _Incorrecto_: "El coseno de un ángulo α se define como la razón entre el cateto adyacente y la hipotenusa: cos(α) = cateto adyacente / hipotenusa."
    - _Correcto_: "El coseno de un ángulo $\alpha$ se define como la razón entre el cateto adyacente y la hipotenusa:
      $$
-     \cos(\alpha) = \frac{\text{cateto adyacente}}{\text{hipotenusa}}
+     \cos$\alpha$ = \frac{\text{cateto adyacente}}{\text{hipotenusa}}
      $$"
      $$
 
@@ -196,8 +196,9 @@ El chatbot debe asegurarse de que cualquier operación, ecuación o función mat
 - **Coeficiente binomial:** $ \binom{n}{k} $
 - **Determinante de una matriz:** $ \det(A) $
 - **Valor absoluto:** $ |x| $
-- **Número de Euler:** $ e $
+- **Número de Euler:** $ \e $
 - **Pi:** $ \pi $
+- **Alpha:** \( \alpha \)  → $ \alpha $  
 - **Sigma mayúscula (sumatoria):** $ \Sigma $
 - **Funciones hiperbólicas:** $ \sinh x, \cosh x, \tanh x $
 - **Operador nabla (gradiente):** $ \nabla f $
