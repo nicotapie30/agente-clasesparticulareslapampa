@@ -1,17 +1,16 @@
+import re
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import black, blue, grey
 from reportlab.lib.utils import simpleSplit
 import os
-import re
 import streamlit as st
-
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.textlabels import Label
 
-def latex_to_image(c, formula, x, y, fontSize=14, center=False):
-    """Renderiza ecuaciones LaTeX como imágenes y previene ZeroDivisionError."""
+def latex_to_image(c, formula, x, y, fontSize=14, center=False, max_width=200):
+    """Renderiza ecuaciones LaTeX como imágenes y previene errores de margen."""
     drawing = Drawing(0, 0)
     math_text = Label()
     math_text.setText(formula)
@@ -19,24 +18,25 @@ def latex_to_image(c, formula, x, y, fontSize=14, center=False):
 
     try:
         bounds = math_text.getBounds()
-        width = max(1, bounds[2] - bounds[0])  # Evita width = 0
-        height = max(1, bounds[3] - bounds[1])  # Evita height = 0
+        width = max(1, bounds[2] - bounds[0])  
+        height = max(1, bounds[3] - bounds[1])  
     except:
-        width, height = 100, 30  # Valores por defecto en caso de error
+        width, height = 100, 30  
 
     drawing.add(math_text)
 
     if center:
-        x = x - (width / 2)
+        x = max(40, x - (width / 2))  
+
+    scale_factor = min(max_width / width, 1)  
 
     c.saveState()
-    c.translate(x, y - height + 5)
-    c.scale(min(100, width) / width, min(20, height) / height)  # Evita dividir por 0
+    c.translate(x, y - height + 15)
+    c.scale(scale_factor, scale_factor)  
     drawing.drawOn(c, 0, 0)
     c.restoreState()
 
-    return height + 10  
- 
+    return height * scale_factor + 10  
 
 def generar_pdf(messages):
     pdf_buffer = BytesIO()
@@ -79,7 +79,7 @@ def generar_pdf(messages):
         c.setFillColor(black)
         c.setFont("Helvetica", 12)
 
-        content_parts = re.split(r"(\$\$.*?\$\$)", message["content"])  # Separar ecuaciones en bloque
+        content_parts = re.split(r"(\$\$.*?\$\$)", message["content"])  
         for part in content_parts:
             if part.startswith("$$") and part.endswith("$$"):
                 formula = part[2:-2].strip()
@@ -88,7 +88,7 @@ def generar_pdf(messages):
                 if y_position < margin_y:
                     nueva_pagina()
             else:
-                text_parts = re.split(r"(\$.*?\$)", part)  # Separar ecuaciones en línea
+                text_parts = re.split(r"(\$.*?\$)", part)  
                 for text in text_parts:
                     if text.startswith("$") and text.endswith("$"):
                         formula = text[1:-1].strip()
@@ -116,7 +116,7 @@ def generar_pdf(messages):
                                 y_position -= line_height  
                                 c.setFont("Helvetica", 12)  
                                 c.setFillColor(black)  
-                            else:  # Texto normal
+                            else:  
                                 content_lines = simpleSplit(line, "Helvetica", 12, max_width)
                                 for subline in content_lines:
                                     c.drawString(margin_x + 10, y_position, subline)  
