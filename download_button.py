@@ -11,7 +11,7 @@ from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.textlabels import Label
 
 def latex_to_image(c, formula, x, y, fontSize=14, center=False):
-    """Renderiza ecuaciones LaTeX como imágenes."""
+    """Renderiza ecuaciones LaTeX como imágenes y previene ZeroDivisionError."""
     drawing = Drawing(0, 0)
     math_text = Label()
     math_text.setText(formula)
@@ -19,10 +19,10 @@ def latex_to_image(c, formula, x, y, fontSize=14, center=False):
 
     try:
         bounds = math_text.getBounds()
-        width = bounds[2] - bounds[0]
-        height = bounds[3] - bounds[1]
+        width = max(1, bounds[2] - bounds[0])  # Evita width = 0
+        height = max(1, bounds[3] - bounds[1])  # Evita height = 0
     except:
-        width, height = 100, 30
+        width, height = 100, 30  # Valores por defecto en caso de error
 
     drawing.add(math_text)
 
@@ -31,11 +31,12 @@ def latex_to_image(c, formula, x, y, fontSize=14, center=False):
 
     c.saveState()
     c.translate(x, y - height + 5)
-    c.scale(min(100, width) / width, min(20, height) / height)
+    c.scale(min(100, width) / width, min(20, height) / height)  # Evita dividir por 0
     drawing.drawOn(c, 0, 0)
     c.restoreState()
 
     return height + 10  
+ 
 
 def generar_pdf(messages):
     pdf_buffer = BytesIO()
