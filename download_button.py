@@ -9,8 +9,8 @@ import streamlit as st
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.textlabels import Label
 
-def latex_to_image(c, formula, x, y, fontSize=14, center=False, max_width=200):
-    """Renderiza ecuaciones LaTeX como imágenes y previene errores de margen."""
+def latex_to_image(c, formula, x, y, fontSize=14, center=False, max_width=180):
+    """Renderiza ecuaciones LaTeX como imágenes sin salirse del margen."""
     drawing = Drawing(0, 0)
     math_text = Label()
     math_text.setText(formula)
@@ -31,7 +31,7 @@ def latex_to_image(c, formula, x, y, fontSize=14, center=False, max_width=200):
     scale_factor = min(max_width / width, 1)  
 
     c.saveState()
-    c.translate(x, y - height + 15)
+    c.translate(x, y - height + 5)
     c.scale(scale_factor, scale_factor)  
     drawing.drawOn(c, 0, 0)
     c.restoreState()
@@ -83,15 +83,21 @@ def generar_pdf(messages):
         for part in content_parts:
             if part.startswith("$$") and part.endswith("$$"):
                 formula = part[2:-2].strip()
+                y_position -= 10  # Espacio antes de ecuaciones en bloque
                 img_height = latex_to_image(c, formula, width / 2, y_position, fontSize=16, center=True)
-                y_position -= img_height  
+                y_position -= img_height + 10  # Espacio después de la ecuación  
                 if y_position < margin_y:
                     nueva_pagina()
             else:
                 text_parts = re.split(r"(\$.*?\$)", part)  
+                line_buffer = []
                 for text in text_parts:
                     if text.startswith("$") and text.endswith("$"):
                         formula = text[1:-1].strip()
+                        if line_buffer:
+                            c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
+                            y_position -= line_height
+                            line_buffer = []
                         img_height = latex_to_image(c, formula, margin_x + 10, y_position, fontSize=12, center=False)
                         y_position -= img_height
                         if y_position < margin_y:
@@ -101,6 +107,10 @@ def generar_pdf(messages):
                         for line in lines:
                             line = line.strip()
                             if line.startswith("###"):  # Títulos
+                                if line_buffer:
+                                    c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
+                                    y_position -= line_height
+                                    line_buffer = []
                                 title_text = line.replace("###", "").strip()
                                 y_position -= 10  
                                 c.setFont("Helvetica-Bold", 14)
@@ -108,6 +118,10 @@ def generar_pdf(messages):
                                 y_position -= line_height + 5  
                                 c.setFont("Helvetica", 12)  
                             elif "**" in line:  # Subtítulos en gris
+                                if line_buffer:
+                                    c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
+                                    y_position -= line_height
+                                    line_buffer = []
                                 subtitle_text = line.replace("**", "").strip()
                                 y_position -= 5  
                                 c.setFillColor(grey)
@@ -116,13 +130,11 @@ def generar_pdf(messages):
                                 y_position -= line_height  
                                 c.setFont("Helvetica", 12)  
                                 c.setFillColor(black)  
-                            else:  
-                                content_lines = simpleSplit(line, "Helvetica", 12, max_width)
-                                for subline in content_lines:
-                                    c.drawString(margin_x + 10, y_position, subline)  
-                                    y_position -= line_height
-                                    if y_position < margin_y:
-                                        nueva_pagina()
+                            else:
+                                line_buffer.append(line)
+                if line_buffer:
+                    c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
+                    y_position -= line_height
 
         y_position -= line_height * 1.5  
 
