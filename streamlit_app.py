@@ -50,15 +50,11 @@ if not st.session_state.chat_active:
     
     if st.button("### Comenzar", key="start_button"):
         st.session_state.chat_active = True
-        st.rerun()  # Corrección: Usar st.rerun() en lugar de st.experimental_rerun()
-
-
+        st.rerun()
 
 # Si el chat está activado, mostrar mensajes y permitir interacción
 if st.session_state.chat_active:
-
-    st.markdown(f"""<b>¡Bienvenido! Escribe tu primera pregunta</B>""",
-        unsafe_allow_html=True)
+    st.markdown("<b>¡Bienvenido! Escribe tu primera pregunta</b>", unsafe_allow_html=True)
 
     # Mostrar botón de descarga si hay mensajes previos
     if st.session_state.messages:
@@ -74,22 +70,34 @@ if st.session_state.chat_active:
             frontend.render_chat_message(message["role"], message["content"], avatar=avatar)
             st.session_state.rendered_message_ids.add(message_id)
 
+    def limpiar_latex(respuesta):
+        """Elimina caracteres invisibles y espacios innecesarios en LaTeX."""
+        return respuesta.replace("\xa0", " ").strip()
+
     def validar_respuesta_matematica(respuesta):
-        # Permitir respuestas no matemáticas
+        """Valida que las respuestas matemáticas estén bien formateadas."""
         if "$" not in respuesta and "$$" not in respuesta:
             return respuesta  # Respuesta no matemática permitida
-        return respuesta  # Formato válido
+        return limpiar_latex(respuesta)
 
-    # Input para enviar mensajes (solo aparece después de hacer clic en "Comenzar")
+    # Input para enviar mensajes
     if prompt := st.chat_input("Escribe tu mensaje aquí..."):
-        # Guardar el mensaje del usuario en la sesión y mostrarlo
         user_message = {"role": "user", "content": prompt}
         st.session_state.messages.append(user_message)
         frontend.render_chat_message("user", prompt, avatar=user_logo)
 
         # Crear contexto inicial con instrucciones y contenido del libro
         contexto_inicial = [
-            {"role": "system", "content": "Es OBLIGATORIO que EVITES utilizar texto plano para las operaciones matemáticas, hasta en las operaciones matemáticas que escribas en texto plano y SIEMPRE debas usar formato LaTeX. Por ejemplo, $x^2 + 2x + 1 = 0$. Devuelve las ecuaciones matemáticas según las reglas establecidas."},
+            {"role": "system", "content": """
+            Es OBLIGATORIO que TODAS las expresiones matemáticas estén en LaTeX.
+            Nunca uses texto plano para ecuaciones o símbolos matemáticos.
+            Usa SIEMPRE $ ... $ para expresiones en línea y $$ ... $$ para ecuaciones en bloque.
+            Antes de enviar una respuesta, verifica que:
+            1. Cada símbolo matemático esté en LaTeX.
+            2. Cada ecuación esté dentro de $ ... $ (inline) o $$ ... $$ (bloque).
+            3. No haya texto plano en expresiones matemáticas.
+            Si encuentras errores en la respuesta generada, corrige automáticamente antes de enviarla.
+            """},
             {"role": "system", "content": MATH_INSTRUCTIONS},
             {"role": "assistant", "content": PRELIMINARES_MATEMATICA},
         ]
@@ -112,4 +120,9 @@ if st.session_state.chat_active:
         # Guardar y mostrar la respuesta del asistente
         assistant_message = {"role": "assistant", "content": response_content}
         st.session_state.messages.append(assistant_message)
-        frontend.render_chat_message("assistant", response_content, avatar=front_logo) 
+
+        # Separar respuestas Markdown y LaTeX
+        if "$" in response_content or "$$" in response_content:
+            st.latex(response_content)  # Renderiza correctamente las expresiones matemáticas
+        else:
+            frontend.render_chat_message("assistant", response_content, avatar=front_logo)
