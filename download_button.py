@@ -1,16 +1,17 @@
-import re
 from io import BytesIO
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.colors import black, blue, grey
 from reportlab.lib.utils import simpleSplit
 import os
+import re
 import streamlit as st
+
 from reportlab.graphics.shapes import Drawing
 from reportlab.graphics.charts.textlabels import Label
 
-def latex_to_image(c, formula, x, y, fontSize=14, center=False, max_width=180):
-    """Renderiza ecuaciones LaTeX como imágenes sin salirse del margen."""
+def latex_to_image(c, formula, x, y, fontSize=12, center=False):
+    """Renderiza ecuaciones LaTeX como imágenes."""
     drawing = Drawing(0, 0)
     math_text = Label()
     math_text.setText(formula)
@@ -18,25 +19,23 @@ def latex_to_image(c, formula, x, y, fontSize=14, center=False, max_width=180):
 
     try:
         bounds = math_text.getBounds()
-        width = max(1, bounds[2] - bounds[0])  
-        height = max(1, bounds[3] - bounds[1])  
+        width = bounds[2] - bounds[0]
+        height = bounds[3] - bounds[1]
     except:
-        width, height = 100, 30  
+        width, height = 100, 30
 
     drawing.add(math_text)
 
     if center:
-        x = max(40, x - (width / 2))  
-
-    scale_factor = min(max_width / width, 1)  
+        x = x - (width / 2)
 
     c.saveState()
     c.translate(x, y - height + 5)
-    c.scale(scale_factor, scale_factor)  
+    c.scale(min(100, width) / width, min(20, height) / height)
     drawing.drawOn(c, 0, 0)
     c.restoreState()
 
-    return height * scale_factor + 10  
+    return height + 10  
 
 def generar_pdf(messages):
     pdf_buffer = BytesIO()
@@ -79,25 +78,19 @@ def generar_pdf(messages):
         c.setFillColor(black)
         c.setFont("Helvetica", 12)
 
-        content_parts = re.split(r"(\$\$.*?\$\$)", message["content"])  
+        content_parts = re.split(r"(\$\$.*?\$\$)", message["content"])  # Separar ecuaciones en bloque
         for part in content_parts:
             if part.startswith("$$") and part.endswith("$$"):
                 formula = part[2:-2].strip()
-                y_position -= 10  # Espacio antes de ecuaciones en bloque
                 img_height = latex_to_image(c, formula, width / 2, y_position, fontSize=16, center=True)
-                y_position -= img_height + 10  # Espacio después de la ecuación  
+                y_position -= img_height  
                 if y_position < margin_y:
                     nueva_pagina()
             else:
-                text_parts = re.split(r"(\$.*?\$)", part)  
-                line_buffer = []
+                text_parts = re.split(r"(\$.*?\$)", part)  # Separar ecuaciones en línea
                 for text in text_parts:
                     if text.startswith("$") and text.endswith("$"):
                         formula = text[1:-1].strip()
-                        if line_buffer:
-                            c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
-                            y_position -= line_height
-                            line_buffer = []
                         img_height = latex_to_image(c, formula, margin_x + 10, y_position, fontSize=12, center=False)
                         y_position -= img_height
                         if y_position < margin_y:
@@ -107,10 +100,6 @@ def generar_pdf(messages):
                         for line in lines:
                             line = line.strip()
                             if line.startswith("###"):  # Títulos
-                                if line_buffer:
-                                    c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
-                                    y_position -= line_height
-                                    line_buffer = []
                                 title_text = line.replace("###", "").strip()
                                 y_position -= 10  
                                 c.setFont("Helvetica-Bold", 14)
@@ -118,10 +107,6 @@ def generar_pdf(messages):
                                 y_position -= line_height + 5  
                                 c.setFont("Helvetica", 12)  
                             elif "**" in line:  # Subtítulos en gris
-                                if line_buffer:
-                                    c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
-                                    y_position -= line_height
-                                    line_buffer = []
                                 subtitle_text = line.replace("**", "").strip()
                                 y_position -= 5  
                                 c.setFillColor(grey)
@@ -130,11 +115,13 @@ def generar_pdf(messages):
                                 y_position -= line_height  
                                 c.setFont("Helvetica", 12)  
                                 c.setFillColor(black)  
-                            else:
-                                line_buffer.append(line)
-                if line_buffer:
-                    c.drawString(margin_x + 10, y_position, " ".join(line_buffer))
-                    y_position -= line_height
+                            else:  # Texto normal
+                                content_lines = simpleSplit(line, "Helvetica", 12, max_width)
+                                for subline in content_lines:
+                                    c.drawString(margin_x + 10, y_position, subline)  
+                                    y_position -= line_height
+                                    if y_position < margin_y:
+                                        nueva_pagina()
 
         y_position -= line_height * 1.5  
 
