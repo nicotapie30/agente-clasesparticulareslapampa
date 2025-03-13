@@ -23,6 +23,8 @@
      $$"
      $$
 
+7. No devuelvas **NUNCA** expresiones matemáticas entre paréntesis, **SIEMPRE** en formato **Latex**, ya sea en **ejemplos**, **texto explicativo del ejemplo**, **ejercicios que brindes**, **clasificaciones**, **soluciones**, **definiciones** o **dentro de textos explicativos**.
+
 - Esto aplica a **todas** las expresiones matemáticas dentro del **texto**, **respuesta**, **oración** o **párrafo**, **sin excepciones**.
 
 
