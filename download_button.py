@@ -22,7 +22,11 @@ def latex_to_image(c, formula, x, y, fontSize=12, center=False):
         width = bounds[2] - bounds[0]
         height = bounds[3] - bounds[1]
     except:
-        width, height = 100, 30
+        width, height = 100, 30  # Valores por defecto en caso de error
+
+    # Evitar división por cero
+    width = max(width, 1)
+    height = max(height, 1)
 
     drawing.add(math_text)
 
@@ -30,12 +34,12 @@ def latex_to_image(c, formula, x, y, fontSize=12, center=False):
         x = x - (width / 2)
 
     c.saveState()
-    c.translate(x, y - height + 5)
+    c.translate(x, y - height + 15)
     c.scale(min(100, width) / width, min(20, height) / height)
     drawing.drawOn(c, 0, 0)
     c.restoreState()
 
-    return height + 10  
+    return height + 20 
 
 def generar_pdf(messages):
     pdf_buffer = BytesIO()
