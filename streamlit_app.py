@@ -68,7 +68,7 @@ def render_mensaje_con_latex(texto):
             st.latex(bloque.strip("$$"))  # Renderiza ecuaciones en bloque
         else:
             bloque = re.sub(r"(\$.*?\$)", r" \1 ", bloque)  # Espacios en ecuaciones inline
-            st.markdown(bloque, unsafe_allow_html=True)  # Renderiza texto con ecuaciones inline
+            st.write(bloque)  # Renderiza texto con ecuaciones inline
 
 # Si el chat está activado, mostrar mensajes y permitir interacción
 if st.session_state.chat_active:
