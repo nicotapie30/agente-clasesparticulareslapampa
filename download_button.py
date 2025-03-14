@@ -1,142 +1,143 @@
 from io import BytesIO
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfgen import canvas
-from reportlab.lib.colors import black, blue, grey
-from reportlab.lib.utils import simpleSplit
-import os
 import re
 import streamlit as st
+import matplotlib.pyplot as plt
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import letter
+from reportlab.lib.utils import ImageReader
+from PIL import Image
+from reportlab.lib import colors
 
-from reportlab.graphics.shapes import Drawing
-from reportlab.graphics.charts.textlabels import Label
-
-def latex_to_image(c, formula, x, y, fontSize=12, center=False):
-    """Renderiza ecuaciones LaTeX como imágenes."""
-    drawing = Drawing(0, 0)
-    math_text = Label()
-    math_text.setText(formula)
-    math_text.fontSize = fontSize
-
+def latex_to_image(formula, fontSize=14, dpi=300):
+    """Renderiza ecuaciones LaTeX como imágenes usando Matplotlib."""
     try:
-        bounds = math_text.getBounds()
-        width = bounds[2] - bounds[0]
-        height = bounds[3] - bounds[1]
-    except:
-        width, height = 100, 30  # Valores por defecto en caso de error
+        if not formula or formula.strip() == "":
+            raise ValueError("La fórmula está vacía. Verifica la entrada.")
 
-    # Evitar división por cero
-    width = max(width, 1)
-    height = max(height, 1)
+        # Eliminar signos de dólar adicionales si existen
+        formula = formula.strip().strip("$")
 
-    drawing.add(math_text)
+        # Eliminar \displaystyle (si está presente)
+        formula = formula.replace(r"\displaystyle", "")
 
-    if center:
-        x = x - (width / 2)
+        # Envolver la fórmula en delimitadores de LaTeX
+        formula = r"$" + formula + r"$"
 
-    c.saveState()
-    c.translate(x, y - height + 15)
-    c.scale(min(100, width) / width, min(20, height) / height)
-    drawing.drawOn(c, 0, 0)
-    c.restoreState()
+        # Configuración del gráfico
+        fig, ax = plt.subplots(figsize=(0.01, 0.01))
+        ax.axis("off")
+        ax.text(0.5, 0.5, formula, fontsize=fontSize, ha="center", va="center")
 
-    return height + 20 
+        # Guardar la imagen en memoria
+        buf = BytesIO()
+        fig.savefig(buf, format="png", dpi=dpi, bbox_inches="tight", pad_inches=0.1, transparent=True)
+        plt.close(fig)
+        buf.seek(0)
+
+        return Image.open(buf)
+
+    except Exception:
+        return None 
+    
+
 
 def generar_pdf(messages):
+    """Genera un PDF con los mensajes, aplicando colores diferenciados."""
     pdf_buffer = BytesIO()
     c = canvas.Canvas(pdf_buffer, pagesize=letter)
     width, height = letter
-    margin_x = 40
-    margin_y = 50
-    max_width = width - 2 * margin_x  
-    line_height = 16  
-    y_position = height - 100  
-    primera_pagina = True  
+    margin_x, margin_y = 40, 50
+    y_position = height - margin_y
+    text_width = width - 2 * margin_x 
 
     def nueva_pagina():
-        nonlocal y_position, primera_pagina
+        nonlocal y_position
         c.showPage()
-        y_position = height - 50  
-        primera_pagina = False  
+        y_position = height - margin_y
 
-    # Agregar logo (solo en la primera página)
-    logo_path = "logs/front-log.png"
-    if os.path.exists(logo_path):
-        try:
-            c.drawImage(logo_path, margin_x, height - 100, width=100, preserveAspectRatio=True, mask='auto')
-        except Exception as e:
-            st.warning(f"⚠️ Error cargando la imagen: {e}")
-
-    # Dibujar título (solo en la primera página)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawCentredString(width / 2, height - 50, "Chat descargado con Profesor")
-    c.line(margin_x, height - 60, width - margin_x, height - 60)
+    titulo = "Chat con Profesor"
+    c.setFont("Helvetica-Bold", 18)  # 🔹 Aumentar tamaño de letra
+    titulo_ancho = c.stringWidth(titulo, "Helvetica-Bold", 18)
+    c.drawString((width - titulo_ancho) / 2, height - 60, titulo)  # 🔹 Centrar título
+    c.line((width - titulo_ancho) / 2, height - 65, (width + titulo_ancho) / 2, height - 65) 
+    y_position -= 80
 
     for message in messages:
         role = "Usuario" if message["role"] == "user" else "Profesor"
 
-        c.setFillColor(blue if message["role"] == "user" else black)
+        # Definir colores según el rol
+        color = colors.HexColor("#3498db") if role == "Usuario" else colors.black  # Azul para usuario, negro para profesor
+
+        # Encabezado del mensaje
         c.setFont("Helvetica-Bold", 12)
+        c.setFillColor(color)  # Aplica color al texto
         c.drawString(margin_x, y_position, f"{role}:")
-        y_position -= line_height
+        y_position -= 15
 
-        c.setFillColor(black)
-        c.setFont("Helvetica", 12)
+        # Procesar el contenido
+        c.setFont("Helvetica", 10)
+        c.setFillColor(colors.black)  # El contenido siempre en negro para legibilidad
+        words = message["content"].split()
+        buffer = ""
 
-        content_parts = re.split(r"(\$\$.*?\$\$)", message["content"])  # Separar ecuaciones en bloque
+        content_parts = re.split(r"(\$\$.*?\$\$|\$.*?\$)", message["content"])
         for part in content_parts:
             if part.startswith("$$") and part.endswith("$$"):
-                formula = part[2:-2].strip()
-                img_height = latex_to_image(c, formula, width / 2, y_position, fontSize=16, center=True)
-                y_position -= img_height  
-                if y_position < margin_y:
-                    nueva_pagina()
+                formula = part.strip("$$").strip()
+                image = latex_to_image(formula, fontSize=16)
+                if image:
+                    buf = BytesIO()
+                    image.save(buf, format="PNG")
+                    buf.seek(0)
+                    img_width, img_height = image.size
+                    scale_factor = 0.3
+                    img_width *= scale_factor
+                    img_height *= scale_factor
+                    x_position = (width - img_width) / 2
+                    c.drawImage(ImageReader(buf), x_position, y_position - img_height, width=img_width, height=img_height, mask="auto")
+                    y_position -= img_height + 10
+                    if y_position < margin_y:
+                        nueva_pagina()
+            elif part.startswith("$") and part.endswith("$"):
+                formula = part.strip("$").strip()
+                image = latex_to_image(formula, fontSize=12)
+                if image:
+                    buf = BytesIO()
+                    image.save(buf, format="PNG")
+                    buf.seek(0)
+                    img_width, img_height = image.size
+                    scale_factor = 0.3
+                    img_width *= scale_factor
+                    img_height *= scale_factor
+                    x_position = (width - img_width) / 2
+                    c.drawImage(ImageReader(buf), x_position, y_position - img_height, width=img_width, height=img_height, mask="auto")
+                    y_position -= img_height + 5
+                    if y_position < margin_y:
+                        nueva_pagina()
             else:
-                text_parts = re.split(r"(\$.*?\$)", part)  # Separar ecuaciones en línea
-                for text in text_parts:
-                    if text.startswith("$") and text.endswith("$"):
-                        formula = text[1:-1].strip()
-                        img_height = latex_to_image(c, formula, margin_x + 10, y_position, fontSize=12, center=False)
-                        y_position -= img_height
+                words = part.split()
+                buffer = ""
+                for word in words:
+                    if c.stringWidth(buffer + word + " ", "Helvetica", 10) < text_width:
+                        buffer += word + " "
+                    else:
+                        c.drawString(margin_x, y_position, buffer.strip())
+                        y_position -= 15
                         if y_position < margin_y:
                             nueva_pagina()
-                    else:
-                        lines = text.split("\n")
-                        for line in lines:
-                            line = line.strip()
-                            if line.startswith("###"):  # Títulos
-                                title_text = line.replace("###", "").strip()
-                                y_position -= 10  
-                                c.setFont("Helvetica-Bold", 14)
-                                c.drawString(margin_x, y_position, title_text)
-                                y_position -= line_height + 5  
-                                c.setFont("Helvetica", 12)  
-                            elif "**" in line:  # Subtítulos en gris
-                                subtitle_text = line.replace("**", "").strip()
-                                y_position -= 5  
-                                c.setFillColor(grey)
-                                c.setFont("Helvetica-Oblique", 12)  
-                                c.drawString(margin_x + 5, y_position, subtitle_text)
-                                y_position -= line_height  
-                                c.setFont("Helvetica", 12)  
-                                c.setFillColor(black)  
-                            else:  # Texto normal
-                                content_lines = simpleSplit(line, "Helvetica", 12, max_width)
-                                for subline in content_lines:
-                                    c.drawString(margin_x + 10, y_position, subline)  
-                                    y_position -= line_height
-                                    if y_position < margin_y:
-                                        nueva_pagina()
-
-        y_position -= line_height * 1.5  
-
-        if y_position < margin_y:
-            nueva_pagina()
+                        buffer = word + " "
+                if buffer.strip():
+                    c.drawString(margin_x, y_position, buffer.strip())
+                    y_position -= 15
+                    if y_position < margin_y:
+                        nueva_pagina()
 
     c.save()
     pdf_buffer.seek(0)
     return pdf_buffer
 
 def renderizar_boton_descarga(messages):
+    """Renderiza un botón para descargar la conversación como PDF en Streamlit."""
     pdf_buffer = generar_pdf(messages)
     st.sidebar.download_button(
         label="Descargar conversación",

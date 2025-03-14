@@ -37,7 +37,7 @@ MATH_INSTRUCTIONS = cargar_texto("math_instructions.md")
 PRELIMINARES_MATEMATICA = cargar_texto("preliminares_matematica.md")
 
 # Cargar avatares
-front_logo = load_image("logs/front-log.webp")
+front_logo = load_image("logs/front-log.png")
 user_logo = load_image("logs/user_avatar.png")
 
 # Aplicar estilos personalizados
@@ -86,12 +86,15 @@ if st.session_state.chat_active:
     for i, message in enumerate(st.session_state.messages):
         message_id = f"{message['role']}-{i}"
         if message_id not in st.session_state.rendered_message_ids:
-            avatar = front_logo if message["role"] == "assistant" else user_logo
             if message["role"] == "assistant":
-                render_mensaje_con_latex(message["content"])  # Renderiza correctamente el LaTeX
+                with st.chat_message("assistant", avatar="logs/front-log.png"):  # Usar la ruta de la imagen
+                    render_mensaje_con_latex(message["content"])  # Renderiza correctamente LaTeX
             else:
-                frontend.render_chat_message("user", message["content"], avatar=avatar)
-            st.session_state.rendered_message_ids.add(message_id)
+                with st.chat_message("user", avatar="logs/user_avatar.png"):  # También corregido aquí
+                    st.markdown(message["content"], unsafe_allow_html=True)
+
+        st.session_state.rendered_message_ids.add(message_id)
+
 
     # Input para enviar mensajes (solo aparece después de hacer clic en "Comenzar")
     if prompt := st.chat_input("Escribe tu mensaje aquí..."):
