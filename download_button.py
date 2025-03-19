@@ -24,7 +24,7 @@ def latex_to_image(formula, fontSize=14, dpi=300):
         formula = r"$" + formula + r"$"
 
         # Configuración del gráfico
-        fig, ax = plt.subplots(figsize=(0.01, 0.01))
+        fig, ax = plt.subplots(figsize=(0.5, 0.3))
         ax.axis("off")
         ax.text(0.5, 0.5, formula, fontsize=fontSize, ha="center", va="center")
 
@@ -48,7 +48,7 @@ def generar_pdf(messages):
     width, height = letter
     margin_x, margin_y = 40, 50
     y_position = height - margin_y
-    text_width = width - 2 * margin_x 
+    text_width = width - 2 * margin_x - 20
 
     def nueva_pagina():
         nonlocal y_position
@@ -64,33 +64,39 @@ def generar_pdf(messages):
 
     for message in messages:
         role = "Usuario" if message["role"] == "user" else "Profesor"
+        color_texto = colors.HexColor("#3498db") if role == "Usuario" else colors.HexColor("#2c3e50")
+        fondo_mensaje = colors.HexColor("#ecf0f1") if role == "Usuario" else colors.HexColor("#d5dbdb")
 
-        # Definir colores según el rol
-        color = colors.HexColor("#3498db") if role == "Usuario" else colors.black  # Azul para usuario, negro para profesor
+        # 🔹 Dibujar fondo para el mensaje
+        c.setFillColor(fondo_mensaje)
+        alto_mensaje = 20  # Reducir espacio
+        y_position -= alto_mensaje
+        c.rect(margin_x - 5, y_position, text_width + 10, alto_mensaje, fill=1, stroke=0)
+        
+        # 🔹 Encabezado (Usuario / Profesor)
+        c.setFont("Helvetica-Bold", 11)
+        c.setFillColor(color_texto)
+        c.drawString(margin_x, y_position + 8, f"{role}:")
+        y_position -= 18
 
-        # Encabezado del mensaje
-        c.setFont("Helvetica-Bold", 12)
-        c.setFillColor(color)  # Aplica color al texto
-        c.drawString(margin_x, y_position, f"{role}:")
-        y_position -= 15
-
-        # Procesar el contenido
-        c.setFont("Helvetica", 10)
-        c.setFillColor(colors.black)  # El contenido siempre en negro para legibilidad
-        words = message["content"].split()
+        # 🔹 Procesar el contenido (incluyendo LaTeX en el flujo del texto)
+        c.setFont("Helvetica", 9)
+        c.setFillColor(colors.black)
+        content_parts = re.split(r"(\$.*?\$)", message["content"])  
         buffer = ""
 
         content_parts = re.split(r"(\$\$.*?\$\$|\$.*?\$)", message["content"])
+
         for part in content_parts:
             if part.startswith("$$") and part.endswith("$$"):
                 formula = part.strip("$$").strip()
-                image = latex_to_image(formula, fontSize=16)
+                image = latex_to_image(formula, fontSize=12)
                 if image:
                     buf = BytesIO()
                     image.save(buf, format="PNG")
                     buf.seek(0)
                     img_width, img_height = image.size
-                    scale_factor = 0.3
+                    scale_factor = 0.25
                     img_width *= scale_factor
                     img_height *= scale_factor
                     x_position = (width - img_width) / 2
@@ -98,6 +104,7 @@ def generar_pdf(messages):
                     y_position -= img_height + 10
                     if y_position < margin_y:
                         nueva_pagina()
+                    c.setFont("Helvetica", 9)
             elif part.startswith("$") and part.endswith("$"):
                 formula = part.strip("$").strip()
                 image = latex_to_image(formula, fontSize=12)
@@ -136,9 +143,17 @@ def generar_pdf(messages):
     pdf_buffer.seek(0)
     return pdf_buffer
 
-def renderizar_boton_descarga(messages):
+def renderizar_boton_descarga():
     """Renderiza un botón para descargar la conversación como PDF en Streamlit."""
-    pdf_buffer = generar_pdf(messages)
+    if "messages" not in st.session_state or not st.session_state.messages:
+        st.sidebar.warning("No hay mensajes para descargar.")
+        return
+
+    # 💡 Tomar la última versión de la conversación
+    messages_copy = list(st.session_state.messages)
+
+    pdf_buffer = generar_pdf(messages_copy)  # Generar el PDF con la conversación más reciente
+
     st.sidebar.download_button(
         label="Descargar conversación",
         data=pdf_buffer,
