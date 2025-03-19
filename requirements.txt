@@ -1,5 +1,7 @@
 streamlit
-openai
+python-gemini
+requests
+google.generativeai
 Pillow==10.0.0
 xhtml2pdf
 emoji
