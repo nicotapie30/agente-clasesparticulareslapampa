@@ -165,7 +165,7 @@ def generar_pdf(messages):
     # Título centrado y con mejor formato
     titulo = "Clases particulares La Pampa"
     c.setFont("Helvetica-Bold", 20)
-    titulo_ancho = c.stringWidth(titulo, "Helvetica-Bold", 18)
+    titulo_ancho = c.stringWidth(titulo, "Helvetica-Bold", 20)
     c.drawString((width - titulo_ancho) / 2, height - 60, titulo)
     c.setLineWidth(1)
     c.line((width - titulo_ancho * 1.2) / 2, height - 65, (width + titulo_ancho * 1.2) / 2, height - 65)
