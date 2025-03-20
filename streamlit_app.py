@@ -69,7 +69,7 @@ if st.session_state.chat_active:
     def descargar_conversacion():   
         download_button.renderizar_boton_descarga()   
         
-    if len(st.session_state.messages) > 0:
+    if "messages" in st.session_state and len(st.session_state.messages) >= 1:
         with st.sidebar:
             st.markdown("### Guardar conversación")
             st.button("Preparar descarga", on_click=descargar_conversacion)
