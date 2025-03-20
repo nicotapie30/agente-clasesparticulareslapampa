@@ -66,15 +66,15 @@ if st.session_state.chat_active:
     st.markdown("<b>¡Bienvenido! Escribe tu primera pregunta</b>", unsafe_allow_html=True)
 
     # Mostrar botón de descarga si hay mensajes previos
-def descargar_conversacion():   
-    download_button.renderizar_boton_descarga()  
-
-    # Mostrar botón de descarga si hay mensajes previos
-if st.session_state.messages:
-    with st.sidebar:
-        st.markdown("### Guardar conversación")
-        if st.button("Preparar descarga"):
-            descargar_conversacion()
+    def descargar_conversacion():   
+        download_button.renderizar_boton_descarga()  
+    
+        # Mostrar botón de descarga si hay mensajes previos
+    if st.session_state.messages:
+        with st.sidebar:
+            st.markdown("### Guardar conversación")
+            if st.button("Preparar descarga"):
+                descargar_conversacion()
                 
 
     # Renderizar mensajes en orden (primero los antiguos, luego los nuevos)
