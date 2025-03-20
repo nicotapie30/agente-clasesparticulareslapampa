@@ -70,11 +70,11 @@ def descargar_conversacion():
     download_button.renderizar_boton_descarga()  
 
 # Mostrar botón de descarga si hay mensajes previos
-if st.session_state.messages and len(st.session_state.messages) >= 1:
-    with st.sidebar:
-        st.markdown("### Guardar conversación")
-        if st.button("Preparar descarga"):
-            descargar_conversacion()
+    if st.session_state.messages and len(st.session_state.messages) >= 1:
+        with st.sidebar:
+            st.markdown("### Guardar conversación")
+            if st.button("Preparar descarga"):
+                descargar_conversacion()
                 
 
     # Renderizar mensajes en orden (primero los antiguos, luego los nuevos)
