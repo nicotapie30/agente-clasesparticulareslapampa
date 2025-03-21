@@ -39,10 +39,10 @@ def latex_to_image(formula, fontSize=12, dpi=300, is_block=False):
             font_size_adjusted = fontSize * 1.2  # Mayor tamaño para fórmulas de bloque
         else:
             # Para fórmulas inline, más compactas
-            length_factor = min(max(0.8, len(formula) / 20), 2.5)
-            fig_width = 5 * length_factor
-            fig_height = 1.0
-            font_size_adjusted = fontSize
+            length_factor = min(max(1.0, len(formula) / 15), 4.0)
+            fig_width = 7 * length_factor
+            fig_height = 1.5
+            font_size_adjusted = fontSize * 1.2
         
         # Crear figura con fondo transparente
         fig = plt.figure(figsize=(fig_width, fig_height), dpi=dpi)
