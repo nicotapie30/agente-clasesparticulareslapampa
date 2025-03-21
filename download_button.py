@@ -36,7 +36,7 @@ def latex_to_image(formula, fontSize=12, dpi=300, is_block=False):
             length_factor = min(max(0.8, len(formula) / 20), 2.5)
             fig_width = 5 * length_factor
             fig_height = 1.0
-            font_size_adjusted = fontSize *   # Mayor tamaño para fórmulas de bloque
+            font_size_adjusted = fontSize   # Mayor tamaño para fórmulas de bloque
         else:
             # Para fórmulas inline, más compactas
             length_factor = min(max(0.8, len(formula) / 20), 2.5)
