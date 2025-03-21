@@ -207,7 +207,7 @@ def generar_pdf(messages):
                 if texto:
                     # Manejar mejor el espacio después de fórmulas
                     if formula_anterior and not texto.startswith(('.', ',', ':', ';', '?', '!')):
-                        y_position += 8  # Reducir espacio extra si el texto continúa una oración
+                        y_position += 5  # Reducir espacio extra si el texto continúa una oración
                     
                     c.setFont("Helvetica", 10)
                     c.setFillColor(colors.black)
@@ -258,11 +258,11 @@ def generar_pdf(messages):
                         # Ajustar tamaño según tipo de fórmula
                         if is_block:
                             # Fórmulas de bloque centradas
-                            max_width = text_width * 0.9
+                            max_width = text_width * 0.7
                             scale_factor = min(1.0, max_width / img_width)
                             actual_width = img_width * scale_factor
                             actual_height = img_height * scale_factor
-                            x_position = margin_x + (text_width - actual_width) / 2
+                            x_position = margin_x + 5
                             
                             # Espacio adicional antes de bloques
                             y_position -= 8
