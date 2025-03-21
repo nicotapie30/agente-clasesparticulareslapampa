@@ -244,7 +244,7 @@ def generar_pdf(messages):
                 if formula:
                     # Generar imagen de la fórmula con calidad mejorada
                     image = latex_to_image(formula, 
-                                          fontSize=14 if is_block else 12,
+                                          fontSize=14 if is_block else 14,
                                           dpi=300,
                                           is_block=is_block)
                     
