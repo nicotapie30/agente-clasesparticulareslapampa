@@ -262,7 +262,7 @@ def generar_pdf(messages):
                             scale_factor = min(1.0, max_width / img_width)
                             actual_width = img_width * scale_factor
                             actual_height = img_height * scale_factor
-                            x_position = margin_x + 5
+                            x_position = margin_x + 6
                             
                             # Espacio adicional antes de bloques
                             y_position -= 8
@@ -272,7 +272,9 @@ def generar_pdf(messages):
                             scale_factor = min(1.0, max_width / img_width)
                             actual_width = img_width * scale_factor
                             actual_height = img_height * scale_factor
-                            x_position = margin_x + 5
+                            x_position = margin_x + 6
+
+                            y_position -= 8
                             
                             # Para variables sueltas, usar menos espacio
                             if len(formula.strip()) <= 2:
@@ -288,7 +290,7 @@ def generar_pdf(messages):
                         
                         # Ajustar posición según tipo
                         if is_block:
-                            y_position -= (actual_height + 15)
+                            y_position -= (actual_height + 5)
                         else:
                             y_position -= (actual_height + 5)
                             
