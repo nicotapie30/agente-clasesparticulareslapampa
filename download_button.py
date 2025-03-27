@@ -329,5 +329,4 @@ def renderizar_boton_descarga():
         label="Descargar conversación",
         data=pdf_buffer,
         file_name="chat_con_profesor.pdf",
-        mime="application/pdf"
-    )
+        mime="application/pdf")
