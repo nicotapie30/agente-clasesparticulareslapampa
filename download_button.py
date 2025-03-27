@@ -78,10 +78,7 @@ def latex_to_image(formula, fontSize=12, dpi=300, is_block=False):
             img_cropped = img.crop(cropBox)
             
             # Añadir un pequeño padding
-            new_size = (img_cropped.width + 20, img_cropped.height + 10) 
-            new_img = Image.new("RGBA", new_size, (255, 255, 255, 0))
-            new_img.paste(img_cropped, (10, 5))
-            return new_img
+        
         
         return img
 
